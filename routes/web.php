@@ -13,3 +13,4 @@
 
 Route::get('/', 'ProductsController@index');
 Route::post('/products', 'ProductsController@store');
+Route::post('/products/edit', 'ProductsController@edit');

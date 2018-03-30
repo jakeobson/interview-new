@@ -2,8 +2,13 @@
 <html lang="en">
 <head>
     <title>Interview</title>
-    <link href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" rel="stylesheet"
-          integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <link href="//netdna.bootstrapcdn.com/bootstrap/3.0.0/css/bootstrap.min.css" rel="stylesheet">
+    <script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+    <script src="//netdna.bootstrapcdn.com/bootstrap/3.0.0/js/bootstrap.min.js"></script>
+
+    <link href="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/jquery-editable/css/jquery-editable.css"
+          rel="stylesheet"/>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/x-editable/1.5.0/jquery-editable/js/jquery-editable-poshytip.min.js"></script>
 </head>
 
 <body>
@@ -38,51 +43,86 @@
     <button onclick="submit(this); return false;" class="btn btn-default">Submit</button>
     {{--</form>--}}
 
-    @if($products)
+    <ul class="alert alert-danger" style="display: none;"></ul>
 
-        <table class="table">
-            <thead>
-            <th>Product Name</th>
-            <th>Quantity in Stock</th>
-            <th>Price per item</th>
-            <th>Datetime submitted</th>
-            <th>Total value number</th>
-            </thead>
-            <tbody>
-                @foreach($products as $product)
-                    <tr>
-                        <td>{{ $product->name }}</td>
-                        <td>{{ $product->quantity }}</td>
-                        <td>{{ $product->price }}</td>
-                        <td>{{ $product->datetime }}</td>
-                        <td>{{ ($product->quantity * $product->price) }}</td>
-                    </tr>
 
-                @endforeach
+    <table class="table">
+        <thead>
+        <th>Id</th>
+        <th>Product Name</th>
+        <th>Quantity in Stock</th>
+        <th>Price per item</th>
+        <th>Datetime submitted</th>
+        <th>Total value number</th>
+        </thead>
+        <tbody>
+        @if($products)
+            @foreach($products as $product)
+                <tr>
+                    <td>{{ $product->id }}</td>
+                    <td><a id="name" href="#" class="editable" data-type="text" data-pk="{{ $product->id }}"
+                           data-url="/products/edit"
+                           data-title="Enter name">{{ $product->name }}</a></td>
+                    <td><a id="quantity" href="#" class="editable" data-type="text" data-pk="{{ $product->id }}"
+                           data-url="/products/edit"
+                           data-title="Enter quantity">{{ $product->quantity }}</a></td>
+                    <td><a id="price" href="#" class="editable" data-type="text" data-pk="{{ $product->id }}"
+                           data-url="/products/edit"
+                           data-title="Enter price">{{ $product->price }}</a></td>
+                    <td>{{ $product->datetime }}</td>
+                    <td class="{{ $product->id }}_total">{{ ($product->quantity * $product->price) }}</td>
+                </tr>
 
-            </tbody>
-            <tfoot>
+            @endforeach
+        @endif($products)
 
-            <tr>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td></td>
-                <td id="total">{{ $total }}</td>
-            </tr>
-            </tfoot>
-        </table>
-    @endif
+        </tbody>
+        <tfoot>
+
+        <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td></td>
+            <td id="total">{{ $total }}</td>
+        </tr>
+        </tfoot>
+    </table>
 
 </div><!-- /.container -->
 
 
 </body>
 
-<script src="https://code.jquery.com/jquery-3.3.1.min.js"
-        integrity="sha256-FgpCb/KJQlLNfOu91ta32o/NMZxltwRo8QtmkMRdAu8=" crossorigin="anonymous"></script>
 <script>
+    $(function () {
+        $.fn.editable.defaults.mode = 'inline';
+        $('.editable').editable({
+            params: function (params) {
+                params._token = '<?php echo csrf_token(); ?>';
+
+                return params;
+            },
+            validate: function(value) {
+                if($.trim(value) == '') {
+                    return 'This field is required';
+                }
+            },
+            success: function (response, newValue) {
+
+                console.log('.' + response.id + '_total', response.total);
+
+                $('.' + response.id + '_total').text(response.total);
+                $('#total').text(response.total_all);
+            }
+        });
+    });
+
+
     function submit(e) {
+
+        $('ul').hide();
 
         $.ajax({
             type: "POST",
@@ -105,10 +145,24 @@
                 $('#total').text(total);
 
 
-                $('tbody').append('<tr><td>' + data.name + '</td><td>' + data.quantity + '</td><td>' + data.price + '</td><td>' + data.datetime + '</td><td>' + t + '</td></tr>');
+                $('tbody').append('<tr><td>' + data.id + '</td><td>' + data.name + '</td><td>' + data.quantity + '</td><td>' + data.price + '</td><td>' + data.datetime + '</td><td>' + t + '</td></tr>');
             },
-            error: function (data) {
-                console.log('Error:', data);
+            error: function (xhr, status, response) {
+                var error = jQuery.parseJSON(xhr.responseText);  // this section is key player in getting the value of the errors from controller.
+                var info = $('.edit_alert');
+                $('ul').empty();
+                for (var k in error.message) {
+                    if (error.message.hasOwnProperty(k)) {
+                        error.message[k].forEach(function (val) {
+                            $('ul').append('<li>' + val + '</li>');
+                        });
+
+                    }
+                }
+
+                $('ul').show();
+
+
             }
         });
     }

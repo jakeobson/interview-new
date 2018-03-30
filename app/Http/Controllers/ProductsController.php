@@ -2,68 +2,95 @@
 
 namespace App\Http\Controllers;
 
-use Carbon\Carbon;
 use Illuminate\Http\Request;
 
-use Illuminate\Support\Facades\File;
-use Illuminate\Support\Facades\Storage;
+use App\Product;
+use Validator;
 
 class ProductsController extends Controller
 {
     public function index()
     {
-        $products = Storage::get('json.json');
-        $products = json_decode($products);
 
-        $total = 0;
-        foreach ($products as $product) {
-            $total += ($product->quantity * $product->price);
-        }
+        $products = Product::getProductsFromJsonFile();
+
+        $total = Product::getTotalValue($products);
 
         return view('products.index', compact('products', 'total'));
     }
 
-    public function store()
+    public function store(Request $request)
     {
+        $validator = Validator::make($request->all(), [
+            'quantity' => 'required|numeric',
+            'price' => 'required|numeric',
+            'name' => 'required',
+        ]);
 
-        $item = request()->all();
+        if ($validator->fails()) {
+            $errors = $validator->errors();
+            $errors = json_decode($errors);
 
-        unset($item['_token']);
-
-        $item['datetime'] = Carbon::now()->format('d-m-Y H:i');
-
-        $json = Storage::get('json.json');
-
-        $products = $items = json_decode($json);
-
-        $items[] = $item;
-
-        $items = json_encode($items);
-
-        Storage::put('json.json', $items);
-
-
-        $xml = new \XMLWriter();
-        $xml->openMemory();
-        $xml->startDocument();
-        $xml->startElement('Products');
-
-        foreach (json_decode($items) as $product) {
-            $xml->startElement('data');
-            $xml->writeAttribute('product-name', $product->name);
-            $xml->writeAttribute('quantity', $product->quantity);
-            $xml->writeAttribute('price', $product->price);
-            $xml->writeAttribute('date', $product->datetime);
-            $xml->endElement();
+            return response()->json([
+                'success' => false,
+                'message' => $errors
+            ], 422);
         }
-        $xml->endElement();
-        $xml->endDocument();
 
-        $content = $xml->outputMemory();
-        $xml = null;
+        $products = Product::getProductsFromJsonFile();
 
-        Storage::put('xml.xml', $content);
+        $last_product = null;
 
-        return $item;
+        if ($products) {
+            $last_product = end($products);
+        }
+
+        $newProduct = Product::createNewProduct($request->all(), $last_product);
+
+        $products[] = $newProduct;
+
+        Product::storeAsJsonFile($products);
+
+        Product::storeAsXmlFile($products);
+
+        return $newProduct;
+    }
+
+    public function edit()
+    {
+        $data = request()->all();
+
+        $products = Product::getProductsFromJsonFile();
+
+        $id = $data['pk'];
+
+        $attribute = $data['name'];
+
+        if($data['value']){
+            $total_all = 0;
+            $total = null;
+            foreach ($products as $product) {
+
+
+                if ($product->id == $id) {
+                    $product->{$attribute} = $data['value'];
+
+                    $total = $product->quantity * $product->price;
+                }
+
+                $total_all += $product->quantity * $product->price;
+            }
+
+            Product::storeAsJsonFile($products);
+
+            Product::storeAsXmlFile($products);
+
+            return response()->json([
+                'total' => $total,
+                'total_all' => $total_all,
+                'id' => $id,
+            ], 200);
+        }
+
     }
 }
