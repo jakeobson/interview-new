@@ -37,6 +37,8 @@ class ProductsController extends Controller
             ], 422);
         }
 
+
+
         $products = Product::getProductsFromJsonFile();
 
         $last_product = null;
@@ -50,8 +52,6 @@ class ProductsController extends Controller
         $products[] = $newProduct;
 
         Product::storeAsJsonFile($products);
-
-        Product::storeAsXmlFile($products);
 
         return $newProduct;
     }
@@ -82,8 +82,6 @@ class ProductsController extends Controller
             }
 
             Product::storeAsJsonFile($products);
-
-            Product::storeAsXmlFile($products);
 
             return response()->json([
                 'total' => $total,

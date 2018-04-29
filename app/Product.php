@@ -19,36 +19,6 @@ class Product extends Model
         return true;
     }
 
-    public static function storeAsXmlFile($items)
-    {
-
-
-        $xml = new \XMLWriter();
-        $xml->openMemory();
-        $xml->startDocument();
-        $xml->startElement('Product');
-
-        foreach ($items as $product) {
-
-            $product = (array)$product;
-
-            $xml->startElement('data');
-            $xml->writeAttribute('id', $product['id']);
-            $xml->writeAttribute('product-name', $product['name']);
-            $xml->writeAttribute('quantity', $product['quantity']);
-            $xml->writeAttribute('price', $product['price']);
-            $xml->writeAttribute('date', $product['datetime']);
-            $xml->endElement();
-        }
-        $xml->endElement();
-        $xml->endDocument();
-
-        $content = $xml->outputMemory();
-        $xml = null;
-
-        Storage::put('xml.xml', $content);
-    }
-
     public static function getProductsFromJsonFile()
     {
         return json_decode(Storage::get('json.json'));

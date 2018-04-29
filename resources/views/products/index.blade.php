@@ -43,7 +43,7 @@
     <button onclick="submit(this); return false;" class="btn btn-default">Submit</button>
     {{--</form>--}}
 
-    <ul class="alert alert-danger" style="display: none;"></ul>
+    <ul class="list-group" style="display: none; margin-top: 20px;"></ul>
 
 
     <table class="table">
@@ -154,7 +154,7 @@
                 for (var k in error.message) {
                     if (error.message.hasOwnProperty(k)) {
                         error.message[k].forEach(function (val) {
-                            $('ul').append('<li>' + val + '</li>');
+                            $('ul').append('<li class="list-group-item">' + val + '</li>');
                         });
 
                     }
